@@ -1,0 +1,92 @@
+* Evil Ts Mode
+
+This package provides some basic additional action for ~evil-mode~ using the new built-in
+tree sitter library. The package only works with Emacs 29 or greater. To activate, just
+run ~M-x evil-ts-mode~. This was so easy to do, that it hardly merits a package. But perhaps
+it will be useful to someone.
+
+In visual mode, you can select a ~if/try/etc statement~ with ~s~. So when you are inside an if
+statement, the sequence ~vas~ will select it. Similarly, ~f~ selects a function and ~c~ selects
+a class. On these cases, there is no difference between inner and outer text objects.
+
+In normal state, you can move to the beginning or the end of a class with ~[c~ and ~]c~.
+Similarly, ~[f~ and ~]f~ moves you to the start or end of a function. And ~[w~ moves you to the
+start of a sentence, and ~]w~ to the end (these last two bindings are not great, but ~]s~ is
+usually taken for navigating spelling errors). I created this package for my own personal
+use, so the default bindings may not be what you want. Of course, you can change that. The
+mode map is ~evil-ts-mode-map~.
+
+Adding new objects is simple. Open ~treesit-explore-mode~ and find the node of interest. The
+following example, shows how to add a text object for try or if statements and map it to
+~i~:
+
+#+begin_src emacs-lisp :tangle yes
+(require rx)
+
+(evil-define-text-object my-if-or-try (count &optional beg end type)
+  (evil-ts-select-obj (rx (or "if" "for" "with" "try") "_statement")))
+
+(keymap-set evil-inner-text-objects-map "i" 'my-if-or-try)
+(keymap-set evil-outer-text-objects-map "i" 'my-if-or-try)
+#+end_src
+
+** Installation
+
+With straight:
+
+#+begin_src emacs-lisp
+(straight-use-package '(evil-ts :type git :host github :repo "foxfriday/evil-ts"))
+#+end_src
+
+You can also use the new ~vc-install~ functions. This is what I do:
+
+#+begin_src emacs-lisp :tangle yes
+(defun extra-github-install (repo dest &optional branch)
+  "Clone BRANCH of REPO in DEST and install."
+  (let* ((remote (concat "https://github.com/" repo ".git"))
+         (name (nth 1 (string-split repo "/")))
+         (pkg (intern name))
+         (local (file-name-concat (expand-file-name dest) name))
+         (branch (if branch branch "main")))
+    (unless (file-directory-p local)
+      (vc-clone remote 'Git local branch))
+    (unless (package-installed-p pkg)
+      (package-vc-install-from-checkout local name))))
+
+(extra-github-install "foxfriday/evil-ts" "~/Repos/emacs")
+#+end_src
+
+** Troubleshooting
+
+Make sure that you installed the tree sitter modules, and that your Emacs build includes
+native support for tree sitter. The easiest way to install the modules is to use [[https://github.com/casouri/tree-sitter-module][these]]
+scripts. You may also want to activate the built-in tree sitter modes, though that's not
+strictly necessary. You do need to let ~treesit~ know the location of the modules. All that
+can be done by adding the following in your ~init.el~.
+
+#+begin_src emacs-lisp
+; required. Assumes that the modules are in your emacs directory, inside
+; the subdirectory 'ts'.
+(setq treesit-extra-load-path (list (concat user-emacs-directory "ts/")))
+; optional, use tree sitter modes.
+(setq major-mode-remap-alist '((c++-mode . c++-ts-mode)
+                               (c-mode . c-ts-mode)
+                               (c-or-c++-mode . c-or-c++-ts-mode)
+                               (conf-toml-mode . toml-ts-mode)
+                               (csharp-mode . csharp-ts-mode)
+                               (css-mode . css-ts-mode)
+                               (java-mode . java-ts-mode)
+                               (js-json-mode . json-ts-mode)
+                               (python-mode . python-ts-mode)
+                               (ruby-mode . ruby-ts-mode)
+                               (sh-mode . bash-ts-mode)))
+; tree-sitter only modes
+(add-to-list 'auto-mode-alist '("CMakeLists\\'" . cmake-ts-mode))
+(add-to-list 'auto-mode-alist '("Dockerfile\\'" . dockerfile-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.go\\'" . go-ts-mode))
+(add-to-list 'auto-mode-alist '("/go\\.mod\\'" . go-mod-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.rs\\'" . rust-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
+(add-to-list 'auto-mode-alist '("\\.y[a]?ml\\'" . yaml-ts-mode))
+#+end_src

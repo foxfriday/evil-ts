@@ -1,6 +1,6 @@
 * Evil Ts Mode
 
-This package provides some basic additional action for ~evil-mode~ using the new built-in
+This package provides some basic additional actions for ~evil-mode~ using the new built-in
 tree sitter library. The package only works with Emacs 29 or greater. To activate, just
 run ~M-x evil-ts-mode~. This was so easy to do, that it hardly merits a package. But perhaps
 it will be useful to someone.
@@ -90,3 +90,9 @@ can be done by adding the following in your ~init.el~.
 (add-to-list 'auto-mode-alist '("\\.ts\\'" . typescript-ts-mode))
 (add-to-list 'auto-mode-alist '("\\.y[a]?ml\\'" . yaml-ts-mode))
 #+end_src
+
+** Similar Packages
+
+[[https://github.com/meain/evil-textobj-tree-sitter][Evil-textobj-tree-sitter]] provides similar functionality without the "Emacs 29 or greater"
+requirement, and it is available on Melpa. Evil-ts works with the built in treesit package
+so it needs Emacs 29.

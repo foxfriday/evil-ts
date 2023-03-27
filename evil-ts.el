@@ -2,6 +2,7 @@
 
 ;; Version: 0.0.01
 ;; URL: https://github.com/foxfriday/evil-ts
+;; Package-Requires: ((emacs "29") (evil "1"))
 
 ;;; Commentary:
 ;; This package has the minor mode evil-ts-mode. Activating the minor mode

@@ -14,7 +14,7 @@
 (require 'rx)
 (require 'treesit)
 
-(defvar evil-ts-statement (rx (or "if" "for" "with" "try") "_statement")
+(defvar evil-ts-statement (rx (or "if" "for" "try" "with" "while") "_statement")
   "Regex used to move to next or last statement.")
 
 (defvar evil-ts-function "function_definition"
@@ -52,6 +52,23 @@
       (goto-char end)
       (list start end))))
 
+(defun evil-ts-expand-region ()
+  "Expand selection to the closet parent."
+  (let* ((point (point))
+         (mark (or (mark t) point))
+         (start (min point mark))
+         (end (max point mark))
+         (node (treesit-node-at start))
+         (parent (treesit-parent-until node
+                                       (lambda (n) (and (> start (treesit-node-start  n))
+                                                        (< end (treesit-node-end n))))
+                                       nil))
+         (pstart (if parent (treesit-node-start parent) nil))
+         (pend (if parent (treesit-node-end parent) nil)))
+    (when parent
+      (goto-char pstart)
+      (list pstart pend))))
+
 (evil-define-text-object evil-ts-text-obj-stat (count &optional beg end type)
   (evil-ts-select-obj evil-ts-statement))
 
@@ -60,6 +77,9 @@
 
 (evil-define-text-object evil-ts-text-obj-class (count &optional beg end type)
   (evil-ts-select-obj evil-ts-class))
+
+(evil-define-text-object evil-ts-text-obj-expand-region (count &optional beg end type)
+  (evil-ts-expand-region))
 
 (defvar evil-ts-mode-map
   (let ((map (make-sparse-keymap)))
@@ -103,6 +123,9 @@ Key bindings:
 
 (keymap-set evil-inner-text-objects-map "c" 'evil-ts-text-obj-class)
 (keymap-set evil-outer-text-objects-map "c" 'evil-ts-text-obj-class)
+
+(keymap-set evil-inner-text-objects-map "x" 'evil-ts-text-obj-expand-region)
+(keymap-set evil-outer-text-objects-map "x" 'evil-ts-text-obj-expand-region)
 
 (evil-define-key 'normal 'evil-ts-mode-map "[c" 'evil-ts-beginning-of-class)
 (evil-define-key 'normal 'evil-ts-mode-map "]c" 'evil-ts-end-of-class)

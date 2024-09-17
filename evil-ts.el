@@ -1,6 +1,6 @@
 ;;; evil-ts.el --- Add actions to evil using treesit. -*- lexical-binding: t; -*-
 
-;; Version: 0.0.02
+;; Version: 0.0.03
 ;; URL: https://github.com/foxfriday/evil-ts
 ;; Package-Requires: ((emacs "29") (evil "1"))
 
@@ -115,27 +115,23 @@ Key bindings:
   (unless (treesit-available-p)
     (error "Tree sitter does not seem to be available for this mode")))
 
+(evil-define-key 'visual evil-ts-mode-map
+  "s" 'evil-ts-text-obj-stat
+  "s" 'evil-ts-text-obj-stat
+  "f" 'evil-ts-text-obj-fun
+  "f" 'evil-ts-text-obj-fun
+  "c" 'evil-ts-text-obj-class
+  "c" 'evil-ts-text-obj-class
+  "x" 'evil-ts-text-obj-expand-region
+  "x" 'evil-ts-text-obj-expand-region)
 
-(keymap-set evil-inner-text-objects-map "s" 'evil-ts-text-obj-stat)
-(keymap-set evil-outer-text-objects-map "s" 'evil-ts-text-obj-stat)
-
-(keymap-set evil-inner-text-objects-map "f" 'evil-ts-text-obj-fun)
-(keymap-set evil-outer-text-objects-map "f" 'evil-ts-text-obj-fun)
-
-(keymap-set evil-inner-text-objects-map "c" 'evil-ts-text-obj-class)
-(keymap-set evil-outer-text-objects-map "c" 'evil-ts-text-obj-class)
-
-(keymap-set evil-inner-text-objects-map "x" 'evil-ts-text-obj-expand-region)
-(keymap-set evil-outer-text-objects-map "x" 'evil-ts-text-obj-expand-region)
-
-(evil-define-key 'normal 'evil-ts-mode-map "[c" 'evil-ts-beginning-of-class)
-(evil-define-key 'normal 'evil-ts-mode-map "]c" 'evil-ts-end-of-class)
-
-(evil-define-key 'normal 'evil-ts-mode-map "[w" 'evil-ts-beginning-of-statement)
-(evil-define-key 'normal 'evil-ts-mode-map "]w" 'evil-ts-end-of-statement)
-
-(evil-define-key 'normal 'evil-ts-mode-map "[f" 'treesit-beginning-of-defun)
-(evil-define-key 'normal 'evil-ts-mode-map "]f" 'treesit-end-of-defun)
+(evil-define-key '(normal visual) evil-ts-mode-map
+  "[c" 'evil-ts-beginning-of-class
+  "]c" 'evil-ts-end-of-class
+  "[w" 'evil-ts-beginning-of-statement
+  "]w" 'evil-ts-end-of-statement
+  "[f" 'treesit-beginning-of-defun
+  "]f" 'treesit-end-of-defun)
 
 (provide 'evil-ts)
 ;;; evil-ts.el ends here

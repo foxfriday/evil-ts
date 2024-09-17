@@ -1,6 +1,6 @@
 ;;; evil-ts.el --- Add actions to evil using treesit. -*- lexical-binding: t; -*-
 
-;; Version: 0.0.02
+;; Version: 0.0.03
 ;; URL: https://github.com/foxfriday/evil-ts
 ;; Package-Requires: ((emacs "29") (evil "1"))
 

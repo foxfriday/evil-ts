@@ -1,12 +1,12 @@
 ;;; evil-ts.el --- Add actions to evil using treesit. -*- lexical-binding: t; -*-
 
-;; Version: 0.0.03
+;; Version: 0.0.4
 ;; URL: https://github.com/foxfriday/evil-ts
 ;; Package-Requires: ((emacs "29") (evil "1"))
 
 ;;; Commentary:
-;; This package has the minor mode evil-ts-mode. Activating the minor mode
-;; add some actions to evil mode. There are some text objects and some
+;; This package has the minor mode evil-ts-mode.  Activating the minor mode
+;; adds some actions to evil mode.  There are some text objects and some
 ;; functions to move around nodes.
 
 ;;; Code:
@@ -15,14 +15,27 @@
 (require 'rx)
 (require 'treesit)
 
-(defvar evil-ts-statement (rx (or "if" "for" "try" "with" "while") "_statement")
-  "Regex used to move to next or last statement.")
+(defvar evil-ts-statement
+  (rx bos
+      (or "if" "for" "for_in" "try" "with" "while" "do" "switch" "match")
+      "_statement" eos)
+  "Regex matching the node type of a statement.")
 
-(defvar evil-ts-function "function_definition"
-  "Regex used to move to next or last class.")
+(defvar evil-ts-function
+  (rx bos
+      (or "function_definition" "function_declaration" "function_item"
+          "function_expression" "arrow_function" "method_definition"
+          "method_declaration" "constructor_declaration" "method")
+      eos)
+  "Regex matching the node type of a function or method definition.")
 
-(defvar evil-ts-class "class_definition"
-  "Regex used to move to next or last class.")
+(defvar evil-ts-class
+  (rx bos
+      (or "class_definition" "class_declaration" "class_specifier"
+          "struct_specifier" "struct_item" "enum_item" "impl_item"
+          "class" "module")
+      eos)
+  "Regex matching the node type of a class or similar definition.")
 
 (defun evil-ts-beginning-of-class ()
   "Move to the start of a class definition."
@@ -46,29 +59,24 @@
 
 (defun evil-ts-select-obj (obj)
   "Select the region described by OBJ."
-  (let* ((node (treesit-thing-at-point obj 'nested))
-         (start (if node (treesit-node-start node) nil))
-         (end (if node (treesit-node-end node) nil)))
+  (let ((node (treesit-thing-at-point obj 'nested)))
     (when node
-      (goto-char end)
-      (list start end))))
+      (list (treesit-node-start node) (treesit-node-end node)))))
 
-(defun evil-ts-expand-region ()
-  "Expand selection to the closet parent."
-  (let* ((point (point))
-         (mark (or (mark t) point))
-         (start (min point mark))
-         (end (max point mark))
-         (node (treesit-node-at start))
-         (parent (treesit-parent-until node
-                                       (lambda (n) (and (> start (treesit-node-start  n))
-                                                        (< end (treesit-node-end n))))
-                                       nil))
-         (pstart (if parent (treesit-node-start parent) nil))
-         (pend (if parent (treesit-node-end parent) nil)))
-    (when parent
-      (goto-char pstart)
-      (list pstart pend))))
+(defun evil-ts-expand-region (&optional beg end)
+  "Expand the region BEG...END to the closest strictly larger node.
+BEG and END default to the position of point."
+  (let* ((beg (or beg (point)))
+         (end (or end (point)))
+         (node (treesit-node-at beg)))
+    (while (and node
+                (not (and (<= (treesit-node-start node) beg)
+                          (>= (treesit-node-end node) end)
+                          (or (< (treesit-node-start node) beg)
+                              (> (treesit-node-end node) end)))))
+      (setq node (treesit-node-parent node)))
+    (when node
+      (list (treesit-node-start node) (treesit-node-end node)))))
 
 (evil-define-text-object evil-ts-text-obj-stat (count &optional beg end type)
   (evil-ts-select-obj evil-ts-statement))
@@ -80,7 +88,7 @@
   (evil-ts-select-obj evil-ts-class))
 
 (evil-define-text-object evil-ts-text-obj-expand-region (count &optional beg end type)
-  (evil-ts-expand-region))
+  (evil-ts-expand-region beg end))
 
 (defvar evil-ts-mode-map
   (let ((map (make-sparse-keymap)))
@@ -95,35 +103,37 @@
 
 ;;;###autoload
 (define-minor-mode evil-ts-mode
-  "Small integration between evil and the build-in tree-sitter.
+  "Small integration between evil and the built-in tree-sitter.
 
-The mode adds some text objects and some movements. Text objects
-are most useful when selecting an object in visual state. By
-default, in visual state, `s` selects a statement, `f` a function
-and `c` a class. So the sequence `vaf` will select the
-surrounding function. You can also move to the last or previous
-object in normal state using the same letters with the prefix `[`
-or `]` indicating the direction. So, in normal state, `[f` moves
-the cursor to the start of the previous function.
+The mode adds some text objects and some movements.  The text
+objects are bound to `s' for a statement, `f' for a function and
+`c' for a class, and work in visual and operator state.  So the
+sequence `vaf' selects the surrounding function and `daf' deletes
+it.  There is no difference between the inner and the outer
+variant of an object.  The object `x' expands the selection to
+the closest parent node, so after `vax' you can press `ax'
+repeatedly to keep expanding.  You can also move to the beginning
+or end of an object in normal state with the prefix `[' or `]'
+indicating the direction.  So `[f' moves the cursor to the start
+of the previous function.
 
 Key bindings:
 \\{evil-ts-mode-map}"
-  :init-value nil
   :lighter " evil-ts"
-  :require 'treesit
-  :keymap 'evil-ts-mode-map
-  (unless (treesit-available-p)
-    (error "Tree sitter does not seem to be available for this mode")))
+  :keymap evil-ts-mode-map
+  (when (and evil-ts-mode (not (treesit-available-p)))
+    (setq evil-ts-mode nil)
+    (user-error "This Emacs was not built with tree-sitter support")))
 
-(evil-define-key 'visual evil-ts-mode-map
-  "s" 'evil-ts-text-obj-stat
-  "s" 'evil-ts-text-obj-stat
-  "f" 'evil-ts-text-obj-fun
-  "f" 'evil-ts-text-obj-fun
-  "c" 'evil-ts-text-obj-class
-  "c" 'evil-ts-text-obj-class
-  "x" 'evil-ts-text-obj-expand-region
-  "x" 'evil-ts-text-obj-expand-region)
+(evil-define-key '(visual operator) evil-ts-mode-map
+  "as" 'evil-ts-text-obj-stat
+  "is" 'evil-ts-text-obj-stat
+  "af" 'evil-ts-text-obj-fun
+  "if" 'evil-ts-text-obj-fun
+  "ac" 'evil-ts-text-obj-class
+  "ic" 'evil-ts-text-obj-class
+  "ax" 'evil-ts-text-obj-expand-region
+  "ix" 'evil-ts-text-obj-expand-region)
 
 (evil-define-key '(normal visual) evil-ts-mode-map
   "[c" 'evil-ts-beginning-of-class

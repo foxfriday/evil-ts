@@ -5,31 +5,35 @@ tree sitter library. The package only works with Emacs 29 or greater. To activat
 run ~M-x evil-ts-mode~. This was so easy to do, that it hardly merits a package. But perhaps
 it will be useful to someone.
 
-In visual mode, you can select a ~if/try/etc statement~ with ~s~. So when you are inside an if
-statement, the sequence ~vas~ will select it. Similarly, ~f~ selects a function and ~c~ selects
-a class. Using ~vax~ will expand the selection to the nearest parent; ~ax~ can be used
-repeatedly to continue the expansion. On these cases, there is no difference between inner
-and outer text objects.
+The text objects work in visual and operator state. You can select a ~if/try/etc
+statement~ with ~s~. So when you are inside an if statement, the sequence ~vas~ will select
+it, and ~das~ will delete it. Similarly, ~f~ selects a function and ~c~ selects a class.
+Using ~vax~ will expand the selection to the nearest parent; ~ax~ can be used repeatedly to
+continue the expansion. On these cases, there is no difference between inner and outer
+text objects, so ~vis~ and ~vas~ do the same thing. Note that while the mode is active, ~as~
+and ~is~ shadow evil's sentence text objects.
 
 In normal state, you can move to the beginning or the end of a class with ~[c~ and ~]c~.
 Similarly, ~[f~ and ~]f~ moves you to the start or end of a function. And ~[w~ moves you to the
-start of a sentence, and ~]w~ to the end (these last two bindings are not great, but ~]s~ is
+start of a statement, and ~]w~ to the end (these last two bindings are not great, but ~]s~ is
 usually taken for navigating spelling errors). I created this package for my own personal
 use, so the default bindings may not be what you want. Of course, you can change that. The
 mode map is ~evil-ts-mode-map~.
 
 Adding new objects is simple. Open ~treesit-explore-mode~ and find the node of interest. The
 following example, shows how to add a text object for try or if statements and map it to
-~i~:
+~t~. You can bind it in the mode map like the package does, or globally with
+~evil-inner-text-objects-map~ and ~evil-outer-text-objects-map~:
 
 #+begin_src emacs-lisp :tangle yes
-(require rx)
+(require 'rx)
 
 (evil-define-text-object my-if-or-try (count &optional beg end type)
-  (evil-ts-select-obj (rx (or "if" "for" "with" "try") "_statement")))
+  (evil-ts-select-obj (rx bos (or "if" "for" "with" "try") "_statement" eos)))
 
-(keymap-set evil-inner-text-objects-map "i" 'my-if-or-try)
-(keymap-set evil-outer-text-objects-map "i" 'my-if-or-try)
+(evil-define-key '(visual operator) evil-ts-mode-map
+  "at" 'my-if-or-try
+  "it" 'my-if-or-try)
 #+end_src
 
 ** Installation
